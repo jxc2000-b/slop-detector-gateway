@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "slopzam-gateway",
+  "name": "slop-detector-gateway",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-20",
   "observability": { "enabled": true },
@@ -8,7 +8,7 @@
   // Upstream API keys live in the Cloudflare Secrets Store ("store").
   // Fill in store_id from: npx wrangler secrets-store store list --remote
   "secrets_store_secrets": [
-    { "binding": "PANGRAM_API_KEY", "store_id": "REPLACE_WITH_STORE_ID", "secret_name": "PANGRAM_API_KEY" }
+    { "binding": "PANGRAM_API_KEY", "store_id": "store1", "secret_name": "PANGRAM_API_KEY" }
   ],
 
   // Worker-local secrets (npx wrangler secret put <NAME>):

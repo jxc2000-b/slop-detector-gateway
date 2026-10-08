@@ -1,5 +1,5 @@
 {
-  "name": "slopzam-gateway",
+  "name": "slop-detector-gateway",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,19 +9,18 @@
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types"
   },
-  "dependencies": {
-    "hono": "^4.13.13"
-  },
-  "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.23.0",
-    "@cloudflare/workers-types": "^5.20261008.1",
-    "typescript": "^7.0.2",
-    "vitest": "^4.1.11",
-    "wrangler": "^4.148.0"
-  },
   "allowScripts": {
     "esbuild@0.28.1": true,
     "workerd@1.20260815.1": true,
     "workerd@1.20261006.1": true
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.0",
+    "@cloudflare/workers-types": "^5.20261008.1",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0"
+  },
+  "dependencies": {
+    "hono": "^4.13.13"
   }
 }

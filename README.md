@@ -1,6 +1,6 @@
-# slopzam-gateway
+# pangramapi-gateway
 
-Cloudflare Worker that sits between the Slopzam app and upstream APIs (Pangram for now).
+Cloudflare Worker that sits between the app and upstream APIs (Pangram for now).
 The app never sees the upstream key; each device gets a metered slice of usage.
 
 ## API

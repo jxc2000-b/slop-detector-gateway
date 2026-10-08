@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "slopzam-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-20",
+  "observability": { "enabled": true },
+
+  // Upstream API keys live in the Cloudflare Secrets Store ("store").
+  // Fill in store_id from: npx wrangler secrets-store store list --remote
+  "secrets_store_secrets": [
+    { "binding": "PANGRAM_API_KEY", "store_id": "REPLACE_WITH_STORE_ID", "secret_name": "PANGRAM_API_KEY" }
+  ],
+
+  // Worker-local secrets (npx wrangler secret put <NAME>):
+  //   TOKEN_SECRET – HMAC key used to sign device tokens
+  //   ADMIN_SECRET – bearer token for /admin routes
+
+  "vars": {
+    // Hard ceiling on billable upstream calls per UTC day, across every device.
+    "GLOBAL_DAILY_CAP": "2000"
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "METER", "class_name": "Meter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Meter"] }]
+}

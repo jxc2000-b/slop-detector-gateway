@@ -8,7 +8,22 @@
   // Upstream API keys live in the Cloudflare Secrets Store ("store").
   // Fill in store_id from: npx wrangler secrets-store store list --remote
   "secrets_store_secrets": [
-    { "binding": "PANGRAM_API_KEY", "store_id": "store1", "secret_name": "PANGRAM_API_KEY" }
+    { 
+      "binding": "PANGRAM_API_KEY",
+      "store_id": "95f2ffc70b6942dd856abfef5df8c37d", 
+      "secret_name": "PANGRAM_API_KEY" 
+    },
+    {
+      "binding": "TOKEN_SECRET",
+      "store_id": "95f2ffc70b6942dd856abfef5df8c37d", 
+      "secret_name": "TOKEN_SECRET"
+    },
+    {
+      "binding": "ADMIN_SECRET",
+      "store_id": "95f2ffc70b6942dd856abfef5df8c37d", 
+      "secret_name": "ADMIN_SECRET"
+    }
+
   ],
 
   // Worker-local secrets (npx wrangler secret put <NAME>):

@@ -17,6 +17,7 @@ export interface Provider {
   baseUrl: string;
   // Name of the env binding (Secrets Store secret) holding the upstream key.
   secretBinding: string;
+  applyContentType: (headers: Headers) => void;
   applyAuth: (headers: Headers, key: string) => void;
   routes: ProviderRoute[];
 }

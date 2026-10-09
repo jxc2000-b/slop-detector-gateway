@@ -4,6 +4,7 @@ export const pangram: Provider = {
   id: "pangram",
   baseUrl: "https://text.external-api.pangram.com",
   secretBinding: "PANGRAM_API_KEY",
+  applyContentType: (headers) => headers.set("Content-Type", "application/json"),
   applyAuth: (headers, key) => headers.set("x-api-key", key),
   routes: [
     { method: "GET", pattern: /^\/models$/, upstream: () => "/models", cost: 0 },
@@ -25,3 +26,5 @@ export const pangram: Provider = {
     },
   ],
 };
+
+// TODO: Implement and register gptzero provider

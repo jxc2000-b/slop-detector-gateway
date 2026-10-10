@@ -8,7 +8,8 @@ export { Meter } from "./meter";
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-type App = { Bindings: Env; Variables: { deviceId: string } };
+type RequestTiming = { upstreamMs: number; upstreamCalled: boolean; provider?: string; route?: string };
+type App = { Bindings: Env; Variables: { deviceId: string; timing: RequestTiming } };
 const app = new Hono<App>();
 
 const meter = (env: Env, name: string) => env.METER.get(env.METER.idFromName(name));
@@ -28,6 +29,27 @@ app.onError((err, c) => {
   return error(c, 500, "internal", "Something went wrong");
 });
 app.notFound((c) => error(c, 404, "not_found", "No such route"));
+
+// Timing is emitted only to Workers Logs, never added to the response.
+app.use("*", async (c, next) => {
+  const start = performance.now();
+  const timing: RequestTiming = { upstreamMs: 0, upstreamCalled: false };
+  c.set("timing", timing);
+  await next();
+  const totalMs = Math.max(0, performance.now() - start);
+  console.log({
+    event: "gateway_timing",
+    method: c.req.method,
+    provider: timing.provider ?? "none",
+    // Use the configured pattern, not paths containing device/task IDs.
+    route: timing.route ?? "non_provider",
+    status: c.res.status,
+    upstreamCalled: timing.upstreamCalled,
+    totalMs,
+    upstreamMs: timing.upstreamMs,
+    gatewayMs: Math.max(0, totalMs - timing.upstreamMs),
+  });
+});
 
 app.get("/health", (c) => c.json({ ok: true }));
 
@@ -72,6 +94,9 @@ v1.all("/:provider/*", async (c) => {
   const match = matchRoute(provider, c.req.method, path);
   if (!match) return error(c, 404, "not_found", "Route not available through this gateway");
   const { route, params } = match;
+  const timing = c.get("timing");
+  timing.provider = provider.id;
+  timing.route = route.pattern.source;
 
   const deviceId = c.get("deviceId");
   const stub = deviceMeter(c.env, deviceId);
@@ -132,6 +157,8 @@ v1.all("/:provider/*", async (c) => {
   if (body) headers.set("content-type", c.req.header("content-type") ?? "application/json");
 
   let upstream: Response;
+  const upstreamStart = performance.now();
+  timing.upstreamCalled = true;
   try {
     upstream = await fetch(provider.baseUrl + route.upstream(...params), {
       method: route.method,
@@ -139,12 +166,19 @@ v1.all("/:provider/*", async (c) => {
       body,
     });
   } catch (err) {
+    timing.upstreamMs = Math.max(0, performance.now() - upstreamStart);
     console.error("upstream fetch failed", provider.id, err);
     await refund();
     return error(c, 502, "upstream_unreachable", "Upstream service unreachable", quotaHeaders);
   }
 
-  const text = await upstream.text();
+  let text: string;
+  try {
+    text = await upstream.text();
+  } finally {
+    // Include the response download, even if reading the body fails.
+    timing.upstreamMs = Math.max(0, performance.now() - upstreamStart);
+  }
   if (!upstream.ok) {
     await refund();
   } else if (route.ownership === "issue") {

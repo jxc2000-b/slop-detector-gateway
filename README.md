@@ -40,3 +40,28 @@ npm run deploy
 ```
 
 Local dev: copy `.dev.vars.example` to `.dev.vars`.
+
+
+## Latency logs
+
+Each request emits a structured `gateway_timing` event to Workers Logs. Timing
+information is not added to response headers or bodies. Fields (milliseconds):
+
+- `totalMs`: time in the request handler until the response is prepared.
+- `upstreamMs`: provider fetch and full response download, or elapsed failed fetch.
+- `gatewayMs`: total minus upstream, including authentication, secret reads,
+  Durable Object operations, request-body reading, and response processing.
+
+After deployment, use `npx wrangler tail` for live logs. In Cloudflare Observability's
+Query Builder, filter `event = "gateway_timing"` and `upstreamCalled = true`;
+chart P50/P95/P99 of `gatewayMs`, grouping by `provider`, `route`, and `status`.
+Compare with `upstreamMs` and `totalMs`, keeping successful and failed requests separate.
+The route field contains a configured pattern, not a device or task ID. Timing logs
+contain no tokens, secrets, request bodies, or raw URLs.
+
+These estimate internal elapsed overhead, not added client network latency or CPU
+time. Workers clocks advance on I/O, so CPU-only intervals can read zero. Startup
+before middleware, response transmission and log emission are not included.
+Compare direct-provider and gateway requests from the same client to measure
+end-to-end added latency. Observability is already enabled in `wrangler.jsonc`;
+new measurements begin after deploying this code.

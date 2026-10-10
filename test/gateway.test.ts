@@ -51,6 +51,43 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("gateway", () => {
+  it("logs upstream and gateway durations without changing the response", async () => {
+    const { token } = await register();
+    const clock = vi.spyOn(performance, "now")
+      .mockReturnValueOnce(0).mockReturnValueOnce(10)
+      .mockReturnValueOnce(50).mockReturnValue(60);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const res = await call("/v1/pangram/models", { token });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ models: ["default"] });
+      expect([...res.headers.keys()]).toEqual(["content-type"]);
+      expect(log).toHaveBeenCalledExactlyOnceWith({
+        event: "gateway_timing", method: "GET", provider: "pangram",
+        route: "^\\/models$", status: 200, upstreamCalled: true,
+        totalMs: 60, upstreamMs: 40, gatewayMs: 20,
+      });
+    } finally {
+      clock.mockRestore();
+      log.mockRestore();
+    }
+  });
+
+  it("logs rejected requests without reporting an upstream call", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const res = await call("/v1/pangram/models");
+      expect(res.status).toBe(401);
+      expect(res.headers.has("Server-Timing")).toBe(false);
+      expect(log).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+        event: "gateway_timing", status: 401, upstreamCalled: false, upstreamMs: 0,
+      }));
+      expect(upstream).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it("rejects requests without a valid token", async () => {
     expect((await call("/v1/pangram/models")).status).toBe(401);
     const { token } = await register();

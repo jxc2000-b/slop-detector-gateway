@@ -40,7 +40,7 @@ app.post("/v1/register", async (c) => {
 
   const deviceId = crypto.randomUUID();
   const info = await deviceMeter(c.env, deviceId).register();
-  const token = await signDeviceToken(deviceId, c.env.TOKEN_SECRET);
+  const token = await signDeviceToken(deviceId, await c.env.TOKEN_SECRET.get());
   return c.json({ deviceId, token, tier: info.tier }, 201);
 });
 
@@ -50,7 +50,7 @@ const v1 = new Hono<App>();
 
 v1.use("*", async (c, next) => {
   const token = bearer(c);
-  const deviceId = token && (await verifyDeviceToken(token, c.env.TOKEN_SECRET));
+  const deviceId = token && (await verifyDeviceToken(token, await c.env.TOKEN_SECRET.get()));
   if (!deviceId) return error(c, 401, "unauthorized", "Missing or invalid device token");
   c.set("deviceId", deviceId);
   await next();
@@ -172,7 +172,7 @@ const admin = new Hono<App>();
 
 admin.use("*", async (c, next) => {
   const token = bearer(c);
-  if (!c.env.ADMIN_SECRET || !token || !safeEqual(token, c.env.ADMIN_SECRET)) {
+  if (!c.env.ADMIN_SECRET || !token || !safeEqual(token, await c.env.ADMIN_SECRET.get())) {
     return error(c, 401, "unauthorized", "Admin token required");
   }
   await next();

@@ -6,7 +6,7 @@ export default defineConfig({
     cloudflareTest({
       wrangler: { configPath: "./wrangler.jsonc" },
       miniflare: {
-        bindings: { TOKEN_SECRET: "test-token-secret", ADMIN_SECRET: "test-admin", GLOBAL_DAILY_CAP: "1000" },
+        bindings: { GLOBAL_DAILY_CAP: "1000" },
       },
     }),
   ],

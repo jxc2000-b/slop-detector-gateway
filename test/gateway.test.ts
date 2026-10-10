@@ -1,8 +1,13 @@
-import { env } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
 
-const testEnv = { ...env, PANGRAM_API_KEY: { get: async () => "pangram-test-key" } } as unknown as Env;
+const testEnv = {
+  ...env,
+  PANGRAM_API_KEY: { get: async () => "pangram-test-key" },
+  TOKEN_SECRET: { get: async () => "test-token-secret" },
+  ADMIN_SECRET: { get: async () => "test-admin" },
+} as unknown as Env;
 const ctx = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
 let ipCounter = 0;
 
@@ -107,6 +112,7 @@ describe("gateway", () => {
       admin: true,
       body: JSON.stringify({ tier: "paid" }),
     });
+    expect(up.status).toBe(200);
     expect(await up.json()).toMatchObject({ tier: "paid" });
     expect((await classify(token)).headers.get("X-Quota-Remaining")).toBe("99");
 

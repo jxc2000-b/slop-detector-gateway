@@ -65,3 +65,26 @@ before middleware, response transmission and log emission are not included.
 Compare direct-provider and gateway requests from the same client to measure
 end-to-end added latency. Observability is already enabled in `wrangler.jsonc`;
 new measurements begin after deploying this code.
+
+`
+curl -i -X POST "$BASE_URL/v1/register"
+
+curl -i -X POST "$BASE_URL/v1/register"
+
+TOKEN="paste-returned-device-token"
+
+curl -i "$BASE_URL/v1/me" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -i "$BASE_URL/v1/pangram/models" \
+  -H "Authorization: Bearer $TOKEN"
+
+curl -i "$BASE_URL/v1/pangram/task" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This morning I walked to the local bakery to buy fresh bread. The streets were quiet, and the air was cool after the overnight rain.",
+    "model": "default"
+  }'
+
+`

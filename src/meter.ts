@@ -9,8 +9,8 @@ export interface DeviceInfo {
 
 export interface QuotaResult {
   ok: boolean;
-  limit: number;
-  remaining: number;
+  limit: number | null;
+  remaining: number | null;
   resetAt: number; // epoch ms
   day: string;
 }
@@ -75,12 +75,12 @@ export class Meter extends DurableObject<Env> {
     const used = this.kv.get<number>(key) ?? 0;
     const resetAt = nextUtcMidnight(now);
 
-    if (used + cost > limit) {
+    if (limit !== null && used + cost > limit) {
       return { ok: false, limit, remaining: Math.max(0, limit - used), resetAt, day };
     }
     this.kv.put(key, used + cost);
     this.pruneUsage(provider, day);
-    return { ok: true, limit, remaining: limit - used - cost, resetAt, day };
+    return { ok: true, limit, remaining: limit === null ? null : limit - used - cost, resetAt, day };
   }
 
   refund(provider: string, cost: number, day: string): void {

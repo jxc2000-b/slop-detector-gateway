@@ -13,13 +13,17 @@ The app never sees the upstream key; each device gets a metered slice of usage.
 | `POST /v1/pangram/task` | device | Costs 1 from the daily quota. |
 | `GET /v1/pangram/task/:id` | device | Free; only tasks this device created. |
 | `GET /admin/devices/:id` | admin | Inspect a device. |
-| `PATCH /admin/devices/:id` | admin | Body `{ "tier": "free" \| "paid", "revoked": bool }`. |
+| `PATCH /admin/devices/:id` | admin | Body `{ "tier": "free" \| "paid" \| "admin", "revoked": bool }`. |
 
 Device auth: `Authorization: Bearer <token>`. Billable responses include
 `X-Quota-Limit`, `X-Quota-Remaining`, `X-Quota-Reset`. Over quota → `429` with `Retry-After`.
 Failed upstream calls are refunded.
 
-Tiers and limits live in `src/tiers.ts` (free: 3 Pangram classifications/day, paid: 100).
+Tiers and limits live in `src/tiers.ts` (free: 3 Pangram classifications/day, paid: 100, admin: unlimited).
+The admin tier removes the per-device daily quota, but keeps the global safety cap,
+revocation, task ownership, and free-call rate limits. It does not grant admin API
+access. Only an authenticated admin can assign it. Unlimited responses use
+`unlimited` for `X-Quota-Limit` and `X-Quota-Remaining`.
 `GLOBAL_DAILY_CAP` in `wrangler.jsonc` caps total billable calls across all devices.
 
 ## Adding a provider

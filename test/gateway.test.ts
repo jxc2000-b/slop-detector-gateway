@@ -164,3 +164,33 @@ describe("gateway", () => {
     expect((await call("/v1/register", { method: "POST", ip: "9.9.9.9" })).status).toBe(429);
   });
 });
+
+
+describe("unlimited admin tier", () => {
+  it("requires admin authorization and removes the device daily limit", async () => {
+    const { token, deviceId } = await register();
+    const path = `/admin/devices/${deviceId}`;
+    expect((await call(path, { method: "PATCH", token, body: JSON.stringify({ tier: "admin" }) })).status).toBe(401);
+    expect((await call(path, { method: "PATCH", admin: true, body: JSON.stringify({ tier: "admin" }) })).status).toBe(200);
+    // Exceed even the paid tier's daily allowance without making upstream calls.
+    const stub = env.METER.get(env.METER.idFromName(`device:${deviceId}`));
+    expect(await stub.consume("pangram", 100_000)).toMatchObject({ ok: true, limit: null, remaining: null });
+    const res = await classify(token);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Quota-Limit")).toBe("unlimited");
+    expect(res.headers.get("X-Quota-Remaining")).toBe("unlimited");
+    expect(await stub.usage()).toMatchObject({ pangram: 100_001 });
+    expect(await stub.consume("unknown", 1)).toMatchObject({ ok: false, limit: 0 });
+
+    upstream.mockResolvedValueOnce(new Response("boom", { status: 500 }));
+    const failed = await classify(token);
+    expect(failed.status).toBe(500);
+    expect(failed.headers.get("X-Quota-Remaining")).toBe("unlimited");
+    expect(await stub.usage()).toMatchObject({ pangram: 100_001 });
+
+    await call(path, { method: "PATCH", admin: true, body: JSON.stringify({ tier: "free" }) });
+    expect((await classify(token)).status).toBe(429);
+    await call(path, { method: "PATCH", admin: true, body: JSON.stringify({ tier: "admin", revoked: true }) });
+    expect((await classify(token)).status).toBe(403);
+  });
+});

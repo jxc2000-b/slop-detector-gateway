@@ -121,8 +121,8 @@ v1.all("/:provider/*", async (c) => {
   let charged: { day: string } | undefined;
   if (route.cost > 0) {
     const quota = await stub.consume(provider.id, route.cost);
-    quotaHeaders["X-Quota-Limit"] = String(quota.limit);
-    quotaHeaders["X-Quota-Remaining"] = String(quota.remaining);
+    quotaHeaders["X-Quota-Limit"] = quota.limit === null ? "unlimited" : String(quota.limit);
+    quotaHeaders["X-Quota-Remaining"] = quota.remaining === null ? "unlimited" : String(quota.remaining);
     quotaHeaders["X-Quota-Reset"] = new Date(quota.resetAt).toISOString();
     if (!quota.ok) {
       return error(c, 429, "quota_exceeded", `Daily ${provider.id} quota used up`, {
@@ -148,7 +148,9 @@ v1.all("/:provider/*", async (c) => {
       stub.refund(provider.id, route.cost, charged.day),
       meter(c.env, "global").unhit(`daily:${provider.id}`, DAY_MS, route.cost),
     ]);
-    quotaHeaders["X-Quota-Remaining"] = String(Number(quotaHeaders["X-Quota-Remaining"]) + route.cost);
+    if (quotaHeaders["X-Quota-Remaining"] !== "unlimited") {
+      quotaHeaders["X-Quota-Remaining"] = String(Number(quotaHeaders["X-Quota-Remaining"]) + route.cost);
+    }
   };
 
   const secret = (c.env as unknown as Record<string, SecretsStoreSecret>)[provider.secretBinding];
